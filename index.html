@@ -310,11 +310,7 @@ section{margin-bottom:2rem}
         <div class="chart-title">HR Zone Distribution (all workouts)</div>
         <div class="chart-wrap"><canvas id="chartZones"></canvas></div>
       </div>
-      <div class="chart-card span2">
-        <div class="chart-title">Running Pace Trend</div>
-        <div class="chart-subtitle">Average pace per run (min/km) — lower is faster</div>
-        <div class="chart-wrap"><canvas id="chartRunPace"></canvas></div>
-      </div>
+
       <div class="chart-card span2">
         <div class="chart-title">Activity Log</div>
         <div class="act-table-wrap">
@@ -983,17 +979,6 @@ function createCharts() {
     },
   });
 
-  C.runPace = new Chart(document.getElementById('chartRunPace'), {
-    type:'line',
-    data:{ labels:[], datasets:[{ label:'min/km', data:[], borderColor:'#f0883e', backgroundColor:'#f0883e20', fill:true, tension:0.3, pointRadius:2, borderWidth:2, spanGaps:true }]},
-    options:{ ...baseOpts(),
-      scales:{ x:{grid:{color:'#21262d'},ticks:{maxTicksLimit:14}}, y:{grid:{color:'#21262d'},reverse:true,beginAtZero:false,
-        ticks:{ callback: v => { const m=Math.floor(v); const s=Math.round((v-m)*60); return m+':'+(s<10?'0':'')+s; } },
-        title:{display:true,text:'min/km',color:'#7d8590'} } },
-      plugins:{ ...baseOpts().plugins, tooltip:{ ...baseOpts().plugins.tooltip,
-        callbacks:{ label: ctx => { const v=ctx.parsed.y; const m=Math.floor(v); const s=Math.round((v-m)*60); return m+':'+(s<10?'0':'')+s+' /km'; } } } }
-    },
-  });
 }
 
 // ─────────────── UPDATE ALL ───────────────
@@ -1159,12 +1144,6 @@ function updateAll() {
   C.zones.data.datasets[0].data = zones;
   C.zones.update('none');
 
-  // Running pace
-  const runTypes = fa.filter(a=>a.type&&a.type.toLowerCase().includes('run')&&a.dist>0.5&&a.dur>0);
-  const paceData = runTypes.map(a=>({d:a.d, pace: a.dur/a.dist}));
-  const pGran = getGran();
-  const pAgg = aggregate(paceData, pGran, {pace:'avg'});
-  setData(C.runPace, pAgg.map(d=>fmtDate(d.d,pGran)), [pAgg.map(d=>d.pace)], pAgg.map(d=>d.d));
 
   renderActTable(fa);
 
