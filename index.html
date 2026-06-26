@@ -468,6 +468,13 @@ Chart.defaults.animation = false;
 function baseOpts(extra={}) {
   return {
     responsive:true, maintainAspectRatio:false,
+    onClick: (evt, elements, chart) => {
+      if (!elements.length || !chart._rawDates) return;
+      drillTo(chart._rawDates[elements[0].index], getGran());
+    },
+    onHover: (evt, elements, chart) => {
+      chart.canvas.style.cursor = (elements.length && chart._rawDates && getGran() !== 'day') ? 'pointer' : 'default';
+    },
     plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#161b22', borderColor:'#30363d', borderWidth:1, titleColor:'#e6edf3', bodyColor:'#8b949e', padding:10, boxPadding:4, ...extra.tooltip } },
     scales:{ x:{ grid:{color:'#21262d'}, ticks:{maxTicksLimit:12} }, y:{ grid:{color:'#21262d'} }, ...extra.scales },
     ...extra,
@@ -668,7 +675,10 @@ function createCharts() {
   C.actFreq = new Chart(document.getElementById('chartActFreq'), {
     type:'bar',
     data:{ labels:[], datasets:[] },
-    options:{ ...baseOpts(), plugins:{ ...baseOpts().plugins, legend:{display:true,labels:{color:'#7d8590',boxWidth:8,font:{size:10},padding:6}} },
+    options:{ ...baseOpts(),
+      onClick: (evt, elements, chart) => { if (!elements.length || !chart._rawDates) return; drillTo(chart._rawDates[elements[0].index], 'month'); },
+      onHover: (evt, elements, chart) => { chart.canvas.style.cursor = elements.length && chart._rawDates ? 'pointer' : 'default'; },
+      plugins:{ ...baseOpts().plugins, legend:{display:true,labels:{color:'#7d8590',boxWidth:8,font:{size:10},padding:6}} },
       scales:{ x:{stacked:true,grid:{color:'#21262d'},ticks:{maxTicksLimit:12}}, y:{stacked:true,grid:{color:'#21262d'},beginAtZero:true,title:{display:true,text:'Count',color:'#7d8590'}} } },
   });
 
@@ -692,7 +702,10 @@ function createCharts() {
   C.hrEvents = new Chart(document.getElementById('chartHrEvents'), {
     type:'bar',
     data:{ labels:[], datasets:[{ label:'Events', data:[], backgroundColor:'#f8514999', borderColor:'#f85149', borderWidth:1, borderRadius:2 }]},
-    options:{ ...baseOpts(), scales:{ x:{grid:{color:'#21262d'}}, y:{grid:{color:'#21262d'},beginAtZero:true,ticks:{stepSize:1}} } },
+    options:{ ...baseOpts(),
+      onClick: (evt, elements, chart) => { if (!elements.length || !chart._rawDates) return; drillTo(chart._rawDates[elements[0].index], 'month'); },
+      onHover: (evt, elements, chart) => { chart.canvas.style.cursor = elements.length && chart._rawDates ? 'pointer' : 'default'; },
+      scales:{ x:{grid:{color:'#21262d'}}, y:{grid:{color:'#21262d'},beginAtZero:true,ticks:{stepSize:1}} } },
   });
 
   // LIFESTYLE
@@ -800,54 +813,56 @@ function updateAll() {
   setCard('cStress',avgStressVal ? Math.round(avgStressVal)+'/100' : '—', '');
 
   // ── DAILY CHARTS ──
-  updateSimple(C.dist,   dagd, labels, [{key:'dist'}]);
-  updateSimple(C.resp,   dagd, labels, [{key:'resp'}]);
-  updateSimple(C.restHr, dagd, labels, [{key:'restHr'}]);
-  updateSimple(C.stress, dagd, labels, [{key:'stress'}]);
+  const rawD = dagd.map(d=>d.d);
+  updateSimple(C.dist,   dagd, labels, [{key:'dist'}]);   C.dist._rawDates   = rawD;
+  updateSimple(C.resp,   dagd, labels, [{key:'resp'}]);   C.resp._rawDates   = rawD;
+  updateSimple(C.restHr, dagd, labels, [{key:'restHr'}]); C.restHr._rawDates = rawD;
+  updateSimple(C.stress, dagd, labels, [{key:'stress'}]); C.stress._rawDates = rawD;
 
-  setData(C.steps, labels, [dagd.map(d=>d.steps), dagd.map(d=>10000)]);
-  setData(C.cal,   labels, [dagd.map(d=>d.activeCal), dagd.map(d=>d.bmrCal)]);
-  setData(C.mins,  labels, [dagd.map(d=>d.vigMin), dagd.map(d=>d.modMin)]);
-  setData(C.hrRange, labels, [dagd.map(d=>d.maxHr), dagd.map(d=>d.restHr), dagd.map(d=>d.minHr)]);
-  setData(C.bb,    labels, [dagd.map(d=>d.bbHigh), dagd.map(d=>d.bbLow)]);
-  setData(C.bbDelta, labels, [dagd.map(d=>d.bbCharged), dagd.map(d=>d.bbDrained)]);
+  setData(C.steps,   labels, [dagd.map(d=>d.steps), dagd.map(d=>10000)], rawD);
+  setData(C.cal,     labels, [dagd.map(d=>d.activeCal), dagd.map(d=>d.bmrCal)], rawD);
+  setData(C.mins,    labels, [dagd.map(d=>d.vigMin), dagd.map(d=>d.modMin)], rawD);
+  setData(C.hrRange, labels, [dagd.map(d=>d.maxHr), dagd.map(d=>d.restHr), dagd.map(d=>d.minHr)], rawD);
+  setData(C.bb,      labels, [dagd.map(d=>d.bbHigh), dagd.map(d=>d.bbLow)], rawD);
+  setData(C.bbDelta, labels, [dagd.map(d=>d.bbCharged), dagd.map(d=>d.bbDrained)], rawD);
 
   // ── SLEEP CHARTS ──
   const sl = sagd.map(d=>fmtDate(d.d, gran));
-  setData(C.sleepStages, sl, [sagd.map(d=>d.deep), sagd.map(d=>d.rem), sagd.map(d=>d.light), sagd.map(d=>d.awake)]);
-  setData(C.sleepDur, sl, [sagd.map(d=>d.total), sagd.map(_=>8)]);
-  updateSimple(C.sleepResp, sagd, sl, [{key:'avgResp'}]);
+  const rawS = sagd.map(d=>d.d);
+  setData(C.sleepStages, sl, [sagd.map(d=>d.deep), sagd.map(d=>d.rem), sagd.map(d=>d.light), sagd.map(d=>d.awake)], rawS);
+  setData(C.sleepDur,    sl, [sagd.map(d=>d.total), sagd.map(_=>8)], rawS);
+  updateSimple(C.sleepResp, sagd, sl, [{key:'avgResp'}]); C.sleepResp._rawDates = rawS;
 
   // ── FITNESS CHARTS ──
   if (fv.length) {
     const vgran = numDays() > 400 ? 'month' : numDays() > 90 ? 'week' : 'day';
     const vagg = aggregate(fv, vgran, {vo2:'avg'});
-    setData(C.vo2, vagg.map(d=>fmtDate(d.d,vgran)), [vagg.map(d=>d.vo2)]);
+    setData(C.vo2, vagg.map(d=>fmtDate(d.d,vgran)), [vagg.map(d=>d.vo2)], vagg.map(d=>d.d));
   } else {
-    setData(C.vo2, [], [[]]);
+    setData(C.vo2, [], [[]], []);
   }
 
   if (fr.length) {
     const rgran = numDays() > 90 ? 'week' : 'day';
     const ragg = aggregate(fr, rgran, {k5:'avg',k10:'avg',half:'avg',marathon:'avg'});
-    setData(C.race, ragg.map(d=>fmtDate(d.d,rgran)), [ragg.map(d=>d.k5), ragg.map(d=>d.k10), ragg.map(d=>d.half), ragg.map(d=>d.marathon)]);
+    setData(C.race, ragg.map(d=>fmtDate(d.d,rgran)), [ragg.map(d=>d.k5), ragg.map(d=>d.k10), ragg.map(d=>d.half), ragg.map(d=>d.marathon)], ragg.map(d=>d.d));
   } else {
-    setData(C.race, [], [[],[],[],[]]);
+    setData(C.race, [], [[],[],[],[]], []);
   }
 
   if (ft.length) {
     const tgran = numDays() > 90 ? 'week' : 'day';
     const tagg = aggregate(ft, tgran, {load:'avg',minLoad:'avg',maxLoad:'avg'});
-    setData(C.load, tagg.map(d=>fmtDate(d.d,tgran)), [tagg.map(d=>d.maxLoad), tagg.map(d=>d.load), tagg.map(d=>d.minLoad)]);
+    setData(C.load, tagg.map(d=>fmtDate(d.d,tgran)), [tagg.map(d=>d.maxLoad), tagg.map(d=>d.load), tagg.map(d=>d.minLoad)], tagg.map(d=>d.d));
   } else {
-    setData(C.load, [], [[],[],[]]);
+    setData(C.load, [], [[],[],[]], []);
   }
 
   // WEIGHT — use FitNotes bodyweight (filtered to period, dense data)
   const fwBW = filter(FN_BW);
   const bwGran = getGran();
   const bwAgg = aggregate(fwBW, bwGran, {kg:'avg'});
-  setData(C.weight, bwAgg.map(d=>fmtDate(d.d, bwGran)), [bwAgg.map(d=>d.kg)]);
+  setData(C.weight, bwAgg.map(d=>fmtDate(d.d, bwGran)), [bwAgg.map(d=>d.kg)], bwAgg.map(d=>d.d));
 
   // ── WORKOUT CHARTS ──
   // Activity type distribution (filtered to period)
@@ -883,6 +898,7 @@ function updateAll() {
     backgroundColor: (ACT_COLORS[t]||'#7d8590')+'99',
     borderRadius: 2,
   }));
+  C.actFreq._rawDates = allMonthKeys.map(m=>m+'-01');
   C.actFreq.update('none');
 
   // Avg HR by activity type
@@ -912,7 +928,7 @@ function updateAll() {
     hrByMonth[m] = (hrByMonth[m]||0)+1;
   });
   const heMonths = Object.keys(hrByMonth).sort();
-  setData(C.hrEvents, heMonths.map(m=>fmtDate(m+'-01', 'month')), [heMonths.map(m=>hrByMonth[m])]);
+  setData(C.hrEvents, heMonths.map(m=>fmtDate(m+'-01', 'month')), [heMonths.map(m=>hrByMonth[m])], heMonths.map(m=>m+'-01'));
 
   // Lifestyle (daily binary)
   const behaviours = ['Alcohol','Late Meals','Moderate Exercise'];
@@ -956,7 +972,7 @@ function updateAll() {
 
   // Volume chart (aggregate by period granularity)
   const fnVolAgg = aggregate(fvFilt, fnGran, {vol:'sum', sets:'sum'});
-  setData(C.fnVol, fnVolAgg.map(d=>fmtDate(d.d, fnGran)), [fnVolAgg.map(d=>d.vol)]);
+  setData(C.fnVol, fnVolAgg.map(d=>fmtDate(d.d, fnGran)), [fnVolAgg.map(d=>d.vol)], fnVolAgg.map(d=>d.d));
 
   // Frequency chart: sessions per week
   const fnFreqByWk = {};
@@ -966,7 +982,7 @@ function updateAll() {
     fnFreqByWk[wk]=(fnFreqByWk[wk]||0)+1;
   });
   const fnWks = Object.keys(fnFreqByWk).sort();
-  setData(C.fnFreq, fnWks.map(w=>fmtDate(w,'week')), [fnWks.map(w=>fnFreqByWk[w])]);
+  setData(C.fnFreq, fnWks.map(w=>fmtDate(w,'week')), [fnWks.map(w=>fnFreqByWk[w])], fnWks);
 
   // Category donut — count sets per category from FN_CAT in period
   const catSets = {};
@@ -996,7 +1012,7 @@ function updateAll() {
   const fpuFilt = filter(PULLUPS);
   const puGran = getGran();
   const puAgg = aggregate(fpuFilt, puGran, {reps:'max'});
-  setData(C.pullups, puAgg.map(d=>fmtDate(d.d, puGran)), [puAgg.map(d=>d.reps)]);
+  setData(C.pullups, puAgg.map(d=>fmtDate(d.d, puGran)), [puAgg.map(d=>d.reps)], puAgg.map(d=>d.d));
 }
 
 function updateFnProg() {
@@ -1032,10 +1048,38 @@ function updateFnProg() {
 }
 
 // ─────────────── UPDATE HELPERS ───────────────
-function setData(chart, labels, datasets) {
+function setData(chart, labels, datasets, rawDates) {
   chart.data.labels = labels;
   datasets.forEach((d,i) => { if (chart.data.datasets[i]) chart.data.datasets[i].data = d; });
+  if (rawDates) chart._rawDates = rawDates;
   chart.update('none');
+}
+
+function drillTo(date, gran) {
+  if (!date) return;
+  let start, end;
+  if (gran === 'month') {
+    start = date.slice(0,7) + '-01';
+    const dt = new Date(start + 'T00:00:00');
+    dt.setMonth(dt.getMonth() + 1); dt.setDate(0);
+    end = dt.toISOString().slice(0,10);
+  } else if (gran === 'week') {
+    start = date;
+    const dt = new Date(date + 'T00:00:00');
+    dt.setDate(dt.getDate() + 6);
+    end = dt.toISOString().slice(0,10);
+  } else {
+    return; // already at day level — no further drill
+  }
+  const allDates = DAILY.map(d=>d.d).sort();
+  end = end > allDates[allDates.length-1] ? allDates[allDates.length-1] : end;
+  document.querySelectorAll('.p-btn').forEach(b => b.classList.remove('active'));
+  state.period = 'custom';
+  document.getElementById('customRange').style.display = 'flex';
+  document.getElementById('startDate').value = start;
+  document.getElementById('endDate').value   = end;
+  state.start = start; state.end = end;
+  updateAll();
 }
 
 function updateSimple(chart, data, labels, fields) {
