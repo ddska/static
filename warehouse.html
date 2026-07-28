@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Costco Warehouse — Purchase Report</title>
+<style>
+:root{
+  color-scheme: light;
+  --plane:#f9f9f7; --surface:#fcfcfb; --surface-2:#ffffff;
+  --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
+  --good:#006300;
+  --s1:#2a78d6; --s2:#008300; --s3:#e87ba4; --s4:#eda100;
+  --s5:#1baf7a; --s6:#eb6834; --s7:#4a3aa7; --s8:#e34948;
+  --shadow:0 1px 2px rgba(11,11,11,.04),0 4px 16px rgba(11,11,11,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --plane:#0d0d0d; --surface:#1a1a19; --surface-2:#201f1e;
+    --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+    --good:#0ca30c;
+    --s1:#3987e5; --s2:#008300; --s3:#d55181; --s4:#c98500;
+    --s5:#199e70; --s6:#d95926; --s7:#9085e9; --s8:#e66767;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 20px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --plane:#0d0d0d; --surface:#1a1a19; --surface-2:#201f1e;
+  --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+  --good:#0ca30c;
+  --s1:#3987e5; --s2:#008300; --s3:#d55181; --s4:#c98500;
+  --s5:#199e70; --s6:#d95926; --s7:#9085e9; --s8:#e66767;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 20px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--plane); color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  line-height:1.45; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 20px 64px}
+header.top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+h1{font-size:26px;line-height:1.15;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--ink-2);font-size:14px;margin:0}
+.toggle{border:1px solid var(--border);background:var(--surface);color:var(--ink-2);
+  border-radius:9px;padding:8px 12px;font-size:13px;cursor:pointer;font-family:inherit}
+.toggle:hover{color:var(--ink)}
+.note{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--s4);
+  border-radius:10px;padding:11px 14px;font-size:13px;color:var(--ink-2);margin:16px 0 4px}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin:22px 0 8px}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:520px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 15px;box-shadow:var(--shadow)}
+.kpi .v{font-size:23px;font-weight:650;letter-spacing:-.02em}
+.kpi .l{font-size:11.5px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.04em}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 18px 14px;box-shadow:var(--shadow);margin-top:18px}
+.card h2{font-size:16px;margin:0 0 2px;letter-spacing:-.01em}
+.card .cap{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+.legend{display:flex;flex-wrap:wrap;gap:10px 16px;margin:10px 2px 2px;font-size:12.5px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+svg{display:block;width:100%;height:auto;overflow:visible}
+.axis-t{fill:var(--muted);font-size:11px}
+.axis-t.tab{font-variant-numeric:tabular-nums}
+.val-t{fill:var(--ink);font-size:11px;font-weight:600}
+.sub-t{fill:var(--muted);font-size:10px}
+.gridline{stroke:var(--grid);stroke-width:1}
+.baseline{stroke:var(--axis);stroke-width:1}
+.bar{transition:opacity .12s}
+.bar:hover{opacity:.82;cursor:default}
+.tip{position:fixed;pointer-events:none;z-index:50;background:var(--surface-2);color:var(--ink);
+  border:1px solid var(--border);border-radius:9px;padding:8px 10px;font-size:12.5px;
+  box-shadow:var(--shadow);opacity:0;transition:opacity .1s;max-width:260px}
+.tip b{font-weight:650}
+.tip .muted{color:var(--muted)}
+.tbl-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:2px 0 12px}
+.tbl-tools input{flex:1;min-width:180px;border:1px solid var(--border);background:var(--surface-2);
+  color:var(--ink);border-radius:9px;padding:9px 12px;font-size:14px;font-family:inherit}
+.tbl-tools .hint{font-size:12px;color:var(--muted)}
+.tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:13px;background:var(--surface)}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--grid);white-space:nowrap}
+th{position:sticky;top:0;background:var(--surface-2);color:var(--ink-2);font-weight:600;cursor:pointer;
+  user-select:none;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
+th:hover{color:var(--ink)}
+td.name{white-space:normal;min-width:220px}
+td.raw{color:var(--muted);font-size:11px}
+tbody tr:hover{background:color-mix(in srgb,var(--s1) 7%,transparent)}
+th .arw{opacity:.5;font-size:10px}
+.foot{color:var(--muted);font-size:12px;margin-top:26px;line-height:1.6}
+.zero{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Costco Warehouse — Purchase Report</h1>
+      <p class="sub" id="subtitle"></p>
+    </div>
+    <button class="toggle" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+  </header>
+
+  <div class="note" id="partialNote"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="card">
+    <h2>Total spent per year</h2>
+    <p class="cap">Net spending (item totals + tax − returns), from register receipts. 2024 and 2026 are partial years.</p>
+    <div id="chart-year"></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>How often — trips per month</h2>
+      <p class="cap">Each bar is one month; the number is warehouse visits that month.</p>
+      <div id="chart-tripsm"></div>
+    </div>
+    <div class="card">
+      <h2>Spending per month</h2>
+      <p class="cap">Net spend per month over the whole period.</p>
+      <div id="chart-spendm"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Spending by category, per year</h2>
+    <p class="cap">Gross spending on purchased goods (returns shown separately below). Grouped by receipt department.</p>
+    <div class="legend" id="legend-cat"></div>
+    <div id="chart-cat"></div>
+  </div>
+
+  <div class="card">
+    <h2>Top 20 products by total spend</h2>
+    <p class="cap">Summed across all trips, Aug 2024 – Jul 2026.</p>
+    <div id="chart-top"></div>
+  </div>
+
+  <div class="card">
+    <h2>Where — warehouses visited</h2>
+    <p class="cap">Net spend and trip count per warehouse.</p>
+    <div id="chart-wh"></div>
+  </div>
+
+  <div class="card">
+    <h2>Every product, spend per year</h2>
+    <p class="cap" id="tblcap"></p>
+    <div class="tbl-tools">
+      <input id="search" type="search" placeholder="Filter products… (e.g. salmon, egg, coffee)">
+      <span class="hint" id="tblcount"></span>
+    </div>
+    <div class="tablewrap">
+      <table id="itable">
+        <thead><tr>
+          <th data-k="name">Product <span class="arw"></span></th>
+          <th class="num" data-k="2024">2024 <span class="arw"></span></th>
+          <th class="num" data-k="2025">2025 <span class="arw"></span></th>
+          <th class="num" data-k="2026">2026 <span class="arw"></span></th>
+          <th class="num" data-k="total">Total <span class="arw">▼</span></th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <p class="foot" id="footer"></p>
+</div>
+
+<div class="tip" id="tip"></div>
+
+<script>
+const DATA = {"meta": {"n_trips": 34, "n_items": 879, "n_unique_items": 308, "first": "2024-08-05", "last": "2026-07-27", "avg_gap": 21.8, "span_days": 721, "total_net": 12623.11, "total_gross": 15287.96, "total_returns": -2653.57}, "years": ["2024", "2025", "2026"], "year_net": {"2024": 2275.82, "2025": 6732.1, "2026": 3615.19}, "year_gross": {"2024": 4902.72, "2025": 6730.75, "2026": 3654.49}, "year_returns": {"2024": -2550.49, "2025": -44.8, "2026": -58.28}, "year_trips": {"2024": 15, "2025": 13, "2026": 6}, "cat_order": ["Produce", "Meat & Seafood", "Pantry & dry goods", "Dairy & eggs", "Deli, cheese & bakery", "Frozen", "Household & health", "Other"], "cat_year": {"Produce": {"2024": 593.58, "2025": 839.09, "2026": 430.6}, "Meat & Seafood": {"2024": 1007.94, "2025": 2701.17, "2026": 1723.3}, "Pantry & dry goods": {"2024": 730.89, "2025": 856.45, "2026": 424.15}, "Dairy & eggs": {"2024": 268.08, "2025": 314.05, "2026": 169.84}, "Deli, cheese & bakery": {"2024": 1127.54, "2025": 1256.43, "2026": 543.63}, "Frozen": {"2024": 200.15, "2025": 190.37, "2026": 122.11}, "Household & health": {"2024": 267.54, "2025": 517.22, "2026": 240.86}, "Other": {"2024": 707.0, "2025": 55.97, "2026": 0.0}}, "cat_total": {"Produce": 1863.27, "Meat & Seafood": 5432.41, "Pantry & dry goods": 2011.49, "Dairy & eggs": 751.97, "Deli, cheese & bakery": 2927.6, "Frozen": 512.63, "Household & health": 1025.62, "Other": 762.97}, "months": ["2024-08", "2024-09", "2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07"], "month_trips": {"2024-08": 7, "2024-09": 2, "2024-10": 1, "2024-11": 2, "2024-12": 3, "2025-01": 1, "2025-02": 1, "2025-03": 1, "2025-04": 0, "2025-05": 2, "2025-06": 1, "2025-07": 2, "2025-08": 1, "2025-09": 1, "2025-10": 1, "2025-11": 1, "2025-12": 1, "2026-01": 2, "2026-02": 1, "2026-03": 0, "2026-04": 0, "2026-05": 1, "2026-06": 1, "2026-07": 1}, "month_spend": {"2024-08": -1331.54, "2024-09": 603.01, "2024-10": 547.4, "2024-11": 906.59, "2024-12": 1550.36, "2025-01": 357.82, "2025-02": 383.43, "2025-03": 620.38, "2025-04": 0.0, "2025-05": 868.91, "2025-06": 515.47, "2025-07": 581.35, "2025-08": 490.25, "2025-09": 775.5, "2025-10": 634.16, "2025-11": 587.58, "2025-12": 917.25, "2026-01": 742.18, "2026-02": 703.94, "2026-03": 0.0, "2026-04": 0.0, "2026-05": 677.83, "2026-06": 751.89, "2026-07": 739.35}, "warehouses": ["WHEATON", "GAITHERSBURG", "PENTAGON CITY"], "wh_spend": {"WHEATON": 6187.73, "GAITHERSBURG": 5583.72, "PENTAGON CITY": 851.66}, "wh_trips": {"WHEATON": 19, "GAITHERSBURG": 13, "PENTAGON CITY": 2}, "items": [{"name": "Kirkland Signature smoked salmon", "total": 1116.03, "2024": 325.86, "2025": 571.76, "2026": 218.41}, {"name": "Eye of round roast (USDA Choice)", "total": 962.45, "2024": 0.0, "2025": 648.97, "2026": 313.48}, {"name": "Salmon fillet (farm raised)", "total": 894.55, "2024": 122.27, "2025": 427.3, "2026": 344.98}, {"name": "Boneless skinless Atlantic salmon fillet", "total": 653.25, "2024": 175.23, "2025": 351.34, "2026": 126.68}, {"name": "Shrimp salad", "total": 631.16, "2024": 230.4, "2025": 257.76, "2026": 143.0}, {"name": "Steelhead trout fillet (farm raised)", "total": 443.37, "2024": 167.36, "2025": 195.01, "2026": 81.0}, {"name": "Halal boneless skinless chicken thighs", "total": 378.71, "2024": 107.55, "2025": 118.61, "2026": 152.55}, {"name": "Ground beef, 88% lean", "total": 376.22, "2024": 0.0, "2025": 201.77, "2026": 174.45}, {"name": "Avocados, 6 ct", "total": 340.06, "2024": 142.83, "2025": 161.3, "2026": 35.93}, {"name": "Kirkland Signature ground coffee", "total": 291.05, "2024": 44.97, "2025": 159.12, "2026": 86.96}, {"name": "Kirkland Signature liquid egg whites", "total": 262.38, "2024": 85.52, "2025": 118.01, "2026": 58.85}, {"name": "Raw shrimp, 31/40 count (frozen)", "total": 248.72, "2024": 72.94, "2025": 115.62, "2026": 60.16}, {"name": "New York strip steak (USDA Prime)", "total": 247.01, "2024": 0.0, "2025": 101.75, "2026": 145.26}, {"name": "Beef round steak (USDA Choice)", "total": 225.24, "2024": 148.06, "2025": 0.0, "2026": 77.18}, {"name": "Boneless skinless chicken thigh meat", "total": 221.03, "2024": 0.0, "2025": 107.11, "2026": 113.92}, {"name": "Skinless boneless sardines (no oil)", "total": 209.83, "2024": 35.97, "2025": 107.91, "2026": 65.95}, {"name": "Taylor Farms organic Mediterranean chopped salad kit, 12 oz, 2-pack", "total": 206.77, "2024": 62.93, "2025": 107.88, "2026": 35.96}, {"name": "Mixed bell peppers, 6-pack", "total": 203.44, "2024": 60.83, "2025": 91.29, "2026": 51.32}, {"name": "Coupon / electronics return credit", "total": 200.0, "2024": 200.0, "2025": 0.0, "2026": 0.0}, {"name": "New York strip steak (boneless, USDA Choice)", "total": 183.14, "2024": 0.0, "2025": 0.0, "2026": 183.14}, {"name": "Poke bowl", "total": 161.88, "2024": 161.88, "2025": 0.0, "2026": 0.0}, {"name": "Boneless skinless chicken thighs", "total": 158.15, "2024": 103.55, "2025": 54.6, "2026": 0.0}, {"name": "Kirkland Signature unsalted butter (quarters)", "total": 136.29, "2024": 60.36, "2025": 38.37, "2026": 37.56}, {"name": "Kirkland Signature eggs, 5 dozen", "total": 136.08, "2024": 67.95, "2025": 22.48, "2026": 45.65}, {"name": "Lobster tails", "total": 125.94, "2024": 55.23, "2025": 70.71, "2026": 0.0}, {"name": "Interstate/Kirkland Group 51R car battery", "total": 123.99, "2024": 123.99, "2025": 0.0, "2026": 0.0}, {"name": "Chosen Foods avocado oil", "total": 123.25, "2024": 0.0, "2025": 123.25, "2026": 0.0}, {"name": "Charmin Ultra Soft toilet paper, 30 rolls", "total": 122.66, "2024": 29.99, "2025": 92.67, "2026": 0.0}, {"name": "King crab legs and claws", "total": 118.61, "2024": 0.0, "2025": 118.61, "2026": 0.0}, {"name": "Oranges, 8 lb", "total": 117.49, "2024": 56.75, "2025": 42.96, "2026": 17.78}, {"name": "Boneless skinless chicken breast", "total": 113.14, "2024": 0.0, "2025": 113.14, "2026": 0.0}, {"name": "Potatoes, 10 lb", "total": 100.95, "2024": 24.96, "2025": 46.23, "2026": 29.76}, {"name": "Charmin toilet paper, 30 rolls", "total": 98.97, "2024": 0.0, "2025": 32.99, "2026": 65.98}, {"name": "Fresh mozzarella", "total": 96.68, "2024": 24.27, "2025": 49.04, "2026": 23.37}, {"name": "Rotisserie chicken", "total": 94.81, "2024": 24.95, "2025": 54.89, "2026": 14.97}, {"name": "Kirkland Signature grapeseed oil", "total": 86.62, "2024": 0.0, "2025": 32.87, "2026": 53.75}, {"name": "Boneless pork chops", "total": 83.97, "2024": 83.97, "2025": 0.0, "2026": 0.0}, {"name": "Swiss cheese", "total": 80.59, "2024": 15.32, "2025": 32.76, "2026": 32.51}, {"name": "Basil pesto", "total": 79.22, "2024": 28.47, "2025": 50.75, "2026": 0.0}, {"name": "Gefen cooked beets", "total": 78.9, "2024": 0.0, "2025": 51.93, "2026": 26.97}, {"name": "Seaweed salad", "total": 77.93, "2024": 22.98, "2025": 54.95, "2026": 0.0}, {"name": "Chicken leg/thigh meat", "total": 76.51, "2024": 24.73, "2025": 51.78, "2026": 0.0}, {"name": "Canned chickpeas (garbanzo beans)", "total": 68.62, "2024": 0.0, "2025": 42.35, "2026": 26.27}, {"name": "Optimum Nutrition Gold Standard whey protein", "total": 63.99, "2024": 0.0, "2025": 63.99, "2026": 0.0}, {"name": "Organic cucumbers", "total": 62.41, "2024": 6.99, "2025": 34.45, "2026": 20.97}, {"name": "Kirkland Signature paper towels", "total": 60.37, "2024": 19.99, "2025": 40.38, "2026": 0.0}, {"name": "Kirkland Signature baguette", "total": 59.88, "2024": 19.96, "2025": 24.95, "2026": 14.97}, {"name": "Grillo's pickles", "total": 55.92, "2024": 13.98, "2025": 34.95, "2026": 6.99}, {"name": "Kirkland Signature bottled water, 40-pack", "total": 55.86, "2024": 11.97, "2025": 27.93, "2026": 15.96}, {"name": "Canned chicken breast", "total": 53.96, "2024": 13.99, "2025": 26.98, "2026": 12.99}, {"name": "Strawberries, 2 lb", "total": 53.13, "2024": 16.98, "2025": 29.16, "2026": 6.99}, {"name": "Sensodyne Pronamel toothpaste, 4-pack", "total": 51.98, "2024": 0.0, "2025": 25.99, "2026": 25.99}, {"name": "Chicken salad", "total": 51.76, "2024": 12.89, "2025": 12.89, "2026": 25.98}, {"name": "Cocktail tomatoes, 2 lb", "total": 51.42, "2024": 0.0, "2025": 26.46, "2026": 24.96}, {"name": "Tomatoes on the vine", "total": 51.23, "2024": 15.48, "2025": 22.57, "2026": 13.18}, {"name": "Chicken thigh meat", "total": 50.59, "2024": 0.0, "2025": 50.59, "2026": 0.0}, {"name": "Tide liquid laundry detergent, 170 oz", "total": 49.98, "2024": 0.0, "2025": 24.99, "2026": 24.99}, {"name": "Sardines (6-pack)", "total": 49.95, "2024": 49.95, "2025": 0.0, "2026": 0.0}, {"name": "Island Way sorbet (in fruit shells)", "total": 47.97, "2024": 15.99, "2025": 31.98, "2026": 0.0}, {"name": "Organic green beans", "total": 45.43, "2024": 18.97, "2025": 26.46, "2026": 0.0}, {"name": "Thai jasmine rice", "total": 44.98, "2024": 0.0, "2025": 21.99, "2026": 22.99}, {"name": "White peaches, 4 lb", "total": 43.96, "2024": 31.97, "2025": 11.99, "2026": 0.0}, {"name": "Large eggs, 18 ct", "total": 41.41, "2024": 5.29, "2025": 36.12, "2026": 0.0}, {"name": "Spring mix, 1 lb", "total": 40.23, "2024": 17.97, "2025": 22.26, "2026": 0.0}, {"name": "Blue cheese", "total": 39.45, "2024": 15.78, "2025": 7.89, "2026": 15.78}, {"name": "Blueberries, 18 oz", "total": 38.04, "2024": 6.79, "2025": 5.49, "2026": 25.76}, {"name": "Cascade Complete dishwasher pacs", "total": 37.38, "2024": 0.0, "2025": 37.38, "2026": 0.0}, {"name": "Caramel tres leches cake", "total": 35.98, "2024": 17.99, "2025": 17.99, "2026": 0.0}, {"name": "Cascade Shine Boost dishwasher pacs", "total": 35.98, "2024": 0.0, "2025": 0.0, "2026": 35.98}, {"name": "Chicken fryer thighs", "total": 35.12, "2024": 0.0, "2025": 35.12, "2026": 0.0}, {"name": "Mini panettone variety pack", "total": 35.07, "2024": 35.07, "2025": 0.0, "2026": 0.0}, {"name": "Gerry puffer jacket", "total": 34.99, "2024": 34.99, "2025": 0.0, "2026": 0.0}, {"name": "Staheekum men's snow boot", "total": 34.99, "2024": 34.99, "2025": 0.0, "2026": 0.0}, {"name": "Golden kiwi, 3 lb", "total": 34.57, "2024": 9.79, "2025": 12.99, "2026": 11.79}, {"name": "Organic frozen strawberries", "total": 34.27, "2024": 10.99, "2025": 0.0, "2026": 23.28}, {"name": "Boneless chicken breast", "total": 31.4, "2024": 0.0, "2025": 31.4, "2026": 0.0}, {"name": "Chunk light tuna", "total": 30.38, "2024": 14.99, "2025": 15.39, "2026": 0.0}, {"name": "Whole milk", "total": 30.15, "2024": 7.4, "2025": 9.96, "2026": 12.79}, {"name": "Deerskin gloves/mittens", "total": 29.99, "2024": 29.99, "2025": 0.0, "2026": 0.0}, {"name": "Gerry snow pants", "total": 29.99, "2024": 29.99, "2025": 0.0, "2026": 0.0}, {"name": "NHL hoodie", "total": 29.99, "2024": 29.99, "2025": 0.0, "2026": 0.0}, {"name": "Charmin Ultra Strong toilet paper, 30 rolls", "total": 29.99, "2024": 0.0, "2025": 0.0, "2026": 29.99}, {"name": "Fonseca port wine", "total": 29.78, "2024": 29.78, "2025": 0.0, "2026": 0.0}, {"name": "Kirkland Signature dried mango", "total": 29.47, "2024": 9.99, "2025": 0.0, "2026": 19.48}, {"name": "Kirkland Signature unsalted mixed nuts", "total": 29.38, "2024": 13.99, "2025": 15.39, "2026": 0.0}, {"name": "Kirkland Signature organic salsa", "total": 29.37, "2024": 9.99, "2025": 19.38, "2026": 0.0}, {"name": "Soup dumplings (frozen)", "total": 27.58, "2024": 27.58, "2025": 0.0, "2026": 0.0}, {"name": "Organic Gala apples, 3 lb", "total": 27.55, "2024": 0.0, "2025": 16.27, "2026": 11.28}, {"name": "Nongshim Shin Black ramen", "total": 27.48, "2024": 12.99, "2025": 0.0, "2026": 14.49}, {"name": "Bella Sun Luci sun-dried tomatoes", "total": 27.18, "2024": 27.18, "2025": 0.0, "2026": 0.0}, {"name": "32 Degrees soft button-up shirt", "total": 25.98, "2024": 25.98, "2025": 0.0, "2026": 0.0}, {"name": "Watermelon (each)", "total": 25.97, "2024": 17.98, "2025": 0.0, "2026": 7.99}, {"name": "Organic Ataulfo mangoes", "total": 25.97, "2024": 0.0, "2025": 7.99, "2026": 17.98}, {"name": "Tomato medley", "total": 25.47, "2024": 16.98, "2025": 8.49, "2026": 0.0}, {"name": "Kirkland Signature peaches in extra-light syrup (glass jar)", "total": 25.38, "2024": 25.38, "2025": 0.0, "2026": 0.0}, {"name": "Celsius energy drink, 18-pack", "total": 23.99, "2024": 23.99, "2025": 0.0, "2026": 0.0}, {"name": "Kirkland Signature pine nuts", "total": 23.99, "2024": 0.0, "2025": 23.99, "2026": 0.0}, {"name": "Kirkland Signature vegetable bites", "total": 23.98, "2024": 11.99, "2025": 11.99, "2026": 0.0}, {"name": "Mini biscotti", "total": 23.97, "2024": 15.98, "2025": 7.99, "2026": 0.0}, {"name": "Tonkotsu ramen bowls", "total": 23.88, "2024": 23.88, "2025": 0.0, "2026": 0.0}, {"name": "Rao's pasta sauce, 2-pack", "total": 23.88, "2024": 11.89, "2025": 11.99, "2026": 0.0}, {"name": "Cup Noodles, chicken", "total": 23.58, "2024": 23.58, "2025": 0.0, "2026": 0.0}, {"name": "Tilapia fillets (farm raised)", "total": 23.36, "2024": 0.0, "2025": 23.36, "2026": 0.0}, {"name": "Vicks DayQuil/NyQuil liquid (multi-pack)", "total": 23.29, "2024": 23.29, "2025": 0.0, "2026": 0.0}, {"name": "Toblerone chocolate bars", "total": 22.98, "2024": 22.98, "2025": 0.0, "2026": 0.0}, {"name": "Organic dried figs", "total": 22.98, "2024": 0.0, "2025": 22.98, "2026": 0.0}, {"name": "Wasabi poke", "total": 22.21, "2024": 0.0, "2025": 22.21, "2026": 0.0}, {"name": "Kirkland Signature fish oil, 1400 mg, 230 ct", "total": 21.99, "2024": 21.99, "2025": 0.0, "2026": 0.0}, {"name": "Four-fruit jam/spread (strawberry, cherry, raspberry, currant)", "total": 21.98, "2024": 10.99, "2025": 10.99, "2026": 0.0}, {"name": "Avocado oil", "total": 21.79, "2024": 21.79, "2025": 0.0, "2026": 0.0}, {"name": "One A Day Women's 50+ multivitamin, 300 ct", "total": 20.99, "2024": 0.0, "2025": 20.99, "2026": 0.0}, {"name": "Cream cheese", "total": 20.98, "2024": 9.99, "2025": 10.99, "2026": 0.0}, {"name": "Basmati rice, 20 lb", "total": 19.99, "2024": 19.99, "2025": 0.0, "2026": 0.0}, {"name": "Ground beef, 93% lean (4 lb)", "total": 19.99, "2024": 19.99, "2025": 0.0, "2026": 0.0}, {"name": "L'Oreal Voluminous mascara, 3-pack", "total": 19.99, "2024": 19.99, "2025": 0.0, "2026": 0.0}, {"name": "TruNature women's probiotic, 90 ct", "total": 19.99, "2024": 19.99, "2025": 0.0, "2026": 0.0}, {"name": "Waterproof vest", "total": 19.99, "2024": 19.99, "2025": 0.0, "2026": 0.0}, {"name": "Joint-movement glucosamine w/ MSM drink", "total": 19.99, "2024": 0.0, "2025": 19.99, "2026": 0.0}, {"name": "Duracell AA batteries", "total": 19.99, "2024": 0.0, "2025": 19.99, "2026": 0.0}, {"name": "Duracell AAA batteries", "total": 19.99, "2024": 0.0, "2025": 19.99, "2026": 0.0}, {"name": "Maybelline SuperStay Matte Ink, 3-pack", "total": 19.99, "2024": 0.0, "2025": 19.99, "2026": 0.0}, {"name": "Pomegranate", "total": 19.99, "2024": 0.0, "2025": 0.0, "2026": 19.99}, {"name": "Apple strudel", "total": 19.98, "2024": 19.98, "2025": 0.0, "2026": 0.0}, {"name": "Organic hummus", "total": 19.47, "2024": 12.68, "2025": 6.79, "2026": 0.0}, {"name": "Kirkland Signature nitrile gloves, large", "total": 18.99, "2024": 18.99, "2025": 0.0, "2026": 0.0}, {"name": "Nautica 2-piece pajama set", "total": 18.99, "2024": 18.99, "2025": 0.0, "2026": 0.0}, {"name": "SunChips variety pack", "total": 18.99, "2024": 18.99, "2025": 0.0, "2026": 0.0}, {"name": "Maple bar cake", "total": 18.99, "2024": 18.99, "2025": 0.0, "2026": 0.0}, {"name": "Frito-Lay chips variety pack, 30 ct", "total": 18.99, "2024": 0.0, "2025": 18.99, "2026": 0.0}, {"name": "Clorox concentrated bleach", "total": 18.89, "2024": 18.89, "2025": 0.0, "2026": 0.0}, {"name": "Persimmons, 3 lb", "total": 18.78, "2024": 8.79, "2025": 9.99, "2026": 0.0}, {"name": "Noodle bowls", "total": 18.59, "2024": 18.59, "2025": 0.0, "2026": 0.0}, {"name": "Barilla pasta variety (farfalle/elbow/rotini)", "total": 18.48, "2024": 0.0, "2025": 9.49, "2026": 8.99}, {"name": "Kirkland Signature bacon", "total": 17.99, "2024": 17.99, "2025": 0.0, "2026": 0.0}, {"name": "Kirkland Signature Belgian chocolate", "total": 17.99, "2024": 17.99, "2025": 0.0, "2026": 0.0}, {"name": "Indomie Mi Goreng instant noodles", "total": 17.99, "2024": 0.0, "2025": 17.99, "2026": 0.0}, {"name": "45-quart storage container", "total": 17.99, "2024": 0.0, "2025": 17.99, "2026": 0.0}, {"name": "Chobani yogurt", "total": 17.99, "2024": 0.0, "2025": 17.99, "2026": 0.0}, {"name": "Kirkland Signature Ultra liquid laundry detergent", "total": 17.99, "2024": 0.0, "2025": 0.0, "2026": 17.99}, {"name": "Mini melon", "total": 17.98, "2024": 17.98, "2025": 0.0, "2026": 0.0}, {"name": "Kirkland Signature crumbled bacon", "total": 17.98, "2024": 8.99, "2025": 8.99, "2026": 0.0}, {"name": "Kirkland Signature organic extra-virgin olive oil, 1 L", "total": 17.69, "2024": 17.69, "2025": 0.0, "2026": 0.0}, {"name": "Kalamata olives", "total": 17.58, "2024": 8.99, "2025": 8.59, "2026": 0.0}, {"name": "Sliced mozzarella", "total": 17.18, "2024": 8.89, "2025": 8.29, "2026": 0.0}, {"name": "Gas-X, 120 ct", "total": 16.99, "2024": 16.99, "2025": 0.0, "2026": 0.0}, {"name": "Madeleines (French butter cakes)", "total": 16.98, "2024": 8.49, "2025": 8.49, "2026": 0.0}, {"name": "Organic free-range eggs", "total": 16.98, "2024": 7.99, "2025": 8.99, "2026": 0.0}, {"name": "Zinfandel, Sonoma County", "total": 16.89, "2024": 16.89, "2025": 0.0, "2026": 0.0}, {"name": "Honeycrisp apples, 4 lb", "total": 16.78, "2024": 0.0, "2025": 7.79, "2026": 8.99}, {"name": "Sour cream", "total": 16.77, "2024": 5.59, "2025": 11.18, "2026": 0.0}, {"name": "Cranberry goat cheese", "total": 16.48, "2024": 7.99, "2025": 8.49, "2026": 0.0}, {"name": "Coffee Mate creamer", "total": 16.28, "2024": 7.99, "2025": 8.29, "2026": 0.0}, {"name": "Grape tomatoes, 2 lb", "total": 16.17, "2024": 16.17, "2025": 0.0, "2026": 0.0}, {"name": "Royal Asia coconut shrimp (frozen)", "total": 15.99, "2024": 15.99, "2025": 0.0, "2026": 0.0}, {"name": "Assorted chocolate gift box", "total": 15.99, "2024": 15.99, "2025": 0.0, "2026": 0.0}, {"name": "Dumplings (frozen)", "total": 15.99, "2024": 0.0, "2025": 15.99, "2026": 0.0}, {"name": "Kirkland Signature glucosamine + MSM, 375 ct", "total": 15.99, "2024": 0.0, "2025": 15.99, "2026": 0.0}, {"name": "Puma crew socks, 8-pair", "total": 15.99, "2024": 0.0, "2025": 15.99, "2026": 0.0}, {"name": "Kirkland Signature mixed nuts", "total": 15.99, "2024": 0.0, "2025": 15.99, "2026": 0.0}, {"name": "Induveca salami (Dominican sausage)", "total": 15.99, "2024": 0.0, "2025": 0.0, "2026": 15.99}, {"name": "Windsor mozzarella cheese sticks (frozen)", "total": 15.79, "2024": 15.79, "2025": 0.0, "2026": 0.0}, {"name": "Chicken fried rice (frozen)", "total": 15.79, "2024": 0.0, "2025": 0.0, "2026": 15.79}, {"name": "Raw shrimp, 11/15 count (frozen)", "total": 15.49, "2024": 0.0, "2025": 15.49, "2026": 0.0}, {"name": "Organic strawberries, 2 lb", "total": 15.48, "2024": 0.0, "2025": 15.48, "2026": 0.0}, {"name": "Battery core fee (for car battery #1620922)", "total": 15.0, "2024": 15.0, "2025": 0.0, "2026": 0.0}, {"name": "32 Degrees Heat pants", "total": 14.99, "2024": 14.99, "2025": 0.0, "2026": 0.0}, {"name": "32 Degrees tee", "total": 14.99, "2024": 14.99, "2025": 0.0, "2026": 0.0}, {"name": "32 Degrees shirt", "total": 14.99, "2024": 14.99, "2025": 0.0, "2026": 0.0}, {"name": "Trident fruit sugar-free gum", "total": 14.99, "2024": 0.0, "2025": 14.99, "2026": 0.0}, {"name": "Hebrew National beef franks", "total": 14.99, "2024": 0.0, "2025": 0.0, "2026": 14.99}, {"name": "Cara Cara oranges, 5 lb", "total": 14.98, "2024": 0.0, "2025": 14.98, "2026": 0.0}, {"name": "Chateau Ste. Michelle Riesling", "total": 14.49, "2024": 14.49, "2025": 0.0, "2026": 0.0}, {"name": "Kirkland Signature ibuprofen softgels", "total": 14.49, "2024": 14.49, "2025": 0.0, "2026": 0.0}, {"name": "Red plums, 3 lb", "total": 14.48, "2024": 0.0, "2025": 0.0, "2026": 14.48}, {"name": "Perdue chicken nuggets (frozen)", "total": 13.99, "2024": 13.99, "2025": 0.0, "2026": 0.0}, {"name": "Beef salami, kosher (2-pack)", "total": 13.99, "2024": 13.99, "2025": 0.0, "2026": 0.0}, {"name": "Organic fruit bars", "total": 13.99, "2024": 13.99, "2025": 0.0, "2026": 0.0}, {"name": "Puma sports bra, 2-pack (small)", "total": 13.99, "2024": 13.99, "2025": 0.0, "2026": 0.0}, {"name": "Kirkland Signature OptiFiber (fiber supplement), 190 servings", "total": 13.99, "2024": 13.99, "2025": 0.0, "2026": 0.0}, {"name": "Kirkland Signature thick-cut bacon", "total": 13.99, "2024": 0.0, "2025": 13.99, "2026": 0.0}, {"name": "Kirkland Signature gallon freezer bags", "total": 13.99, "2024": 0.0, "2025": 13.99, "2026": 0.0}, {"name": "Multigrain bread", "total": 13.98, "2024": 13.98, "2025": 0.0, "2026": 0.0}, {"name": "Pura Vida vegetable blend (frozen)", "total": 13.89, "2024": 13.89, "2025": 0.0, "2026": 0.0}, {"name": "Eggs, 5 dozen", "total": 13.69, "2024": 0.0, "2025": 13.69, "2026": 0.0}, {"name": "Rotisserie chicken salad", "total": 13.42, "2024": 13.42, "2025": 0.0, "2026": 0.0}, {"name": "Garden Lites spinach frittata (frozen)", "total": 12.99, "2024": 12.99, "2025": 0.0, "2026": 0.0}, {"name": "Pantene Essential Botanicals Jasmine & Citrus conditioner", "total": 12.99, "2024": 12.99, "2025": 0.0, "2026": 0.0}, {"name": "Pantene Rose & Honey shampoo", "total": 12.99, "2024": 0.0, "2025": 12.99, "2026": 0.0}, {"name": "Pantene Rose & Honey conditioner", "total": 12.99, "2024": 0.0, "2025": 0.0, "2026": 12.99}, {"name": "Rao's marinara sauce, 2-pack", "total": 12.99, "2024": 0.0, "2025": 0.0, "2026": 12.99}, {"name": "Frozen smoothie packs", "total": 12.99, "2024": 0.0, "2025": 0.0, "2026": 12.99}, {"name": "Premium plums, 3 lb", "total": 12.98, "2024": 5.99, "2025": 0.0, "2026": 6.99}, {"name": "Organic Brussels sprouts, 2 lb", "total": 12.98, "2024": 0.0, "2025": 12.98, "2026": 0.0}, {"name": "Romaine lettuce, 6-pack", "total": 12.78, "2024": 5.99, "2025": 6.79, "2026": 0.0}, {"name": "Chicken carbonara ramen", "total": 12.39, "2024": 0.0, "2025": 0.0, "2026": 12.39}, {"name": "Pho noodle bowls", "total": 11.99, "2024": 11.99, "2025": 0.0, "2026": 0.0}, {"name": "Danish variety pack", "total": 11.99, "2024": 11.99, "2025": 0.0, "2026": 0.0}, {"name": "Kirkland Signature Irish cream liqueur", "total": 11.99, "2024": 11.99, "2025": 0.0, "2026": 0.0}, {"name": "Antipasto snack trays (2-pack)", "total": 11.99, "2024": 11.99, "2025": 0.0, "2026": 0.0}, {"name": "Kirkland Signature steak strips (jerky)", "total": 11.99, "2024": 11.99, "2025": 0.0, "2026": 0.0}, {"name": "Shingo (Asian) pears, 3 lb", "total": 11.99, "2024": 0.0, "2025": 0.0, "2026": 11.99}, {"name": "Organic mushrooms", "total": 11.99, "2024": 0.0, "2025": 0.0, "2026": 11.99}, {"name": "Roasted hazelnuts", "total": 11.79, "2024": 11.79, "2025": 0.0, "2026": 0.0}, {"name": "Kirkland Signature Gouda cheese", "total": 11.79, "2024": 0.0, "2025": 0.0, "2026": 11.79}, {"name": "Vonbee honey citron & ginger tea", "total": 11.69, "2024": 11.69, "2025": 0.0, "2026": 0.0}, {"name": "Aussie Bites", "total": 11.49, "2024": 11.49, "2025": 0.0, "2026": 0.0}, {"name": "Kasia's potato & cheese pierogi", "total": 11.49, "2024": 11.49, "2025": 0.0, "2026": 0.0}, {"name": "gimMe roasted seaweed snacks (sea salt/teriyaki)", "total": 11.49, "2024": 0.0, "2025": 0.0, "2026": 11.49}, {"name": "Kirkland Signature organic frozen vegetables", "total": 11.29, "2024": 0.0, "2025": 11.29, "2026": 0.0}, {"name": "Crew socks", "total": 10.99, "2024": 10.99, "2025": 0.0, "2026": 0.0}, {"name": "Sliced salami", "total": 10.99, "2024": 0.0, "2025": 10.99, "2026": 0.0}, {"name": "Kirkland Signature ibuprofen, 2x500 ct", "total": 10.99, "2024": 0.0, "2025": 0.0, "2026": 10.99}, {"name": "Baguette (2-pack)", "total": 10.98, "2024": 10.98, "2025": 0.0, "2026": 0.0}, {"name": "UNREAL chocolate bars", "total": 10.89, "2024": 10.89, "2025": 0.0, "2026": 0.0}, {"name": "Rao's Alfredo sauce", "total": 10.89, "2024": 10.89, "2025": 0.0, "2026": 0.0}, {"name": "BelGioioso fresh mozzarella", "total": 10.69, "2024": 10.69, "2025": 0.0, "2026": 0.0}, {"name": "Organic Bartlett pears, 4 lb", "total": 10.69, "2024": 0.0, "2025": 0.0, "2026": 10.69}, {"name": "Whole chicken (fryer)", "total": 10.66, "2024": 0.0, "2025": 0.0, "2026": 10.66}, {"name": "Dried whole cranberries", "total": 9.99, "2024": 9.99, "2025": 0.0, "2026": 0.0}, {"name": "Barilla thin spaghetti", "total": 9.99, "2024": 9.99, "2025": 0.0, "2026": 0.0}, {"name": "Dried plums (prunes)", "total": 9.99, "2024": 0.0, "2025": 9.99, "2026": 0.0}, {"name": "Mangosteen", "total": 9.99, "2024": 0.0, "2025": 9.99, "2026": 0.0}, {"name": "Barilla spaghetti", "total": 9.99, "2024": 0.0, "2025": 9.99, "2026": 0.0}, {"name": "Peaches, 4 lb", "total": 9.99, "2024": 0.0, "2025": 9.99, "2026": 0.0}, {"name": "Quaker granola", "total": 9.99, "2024": 0.0, "2025": 9.99, "2026": 0.0}, {"name": "Go Raw sprouted pumpkin seeds", "total": 9.99, "2024": 0.0, "2025": 0.0, "2026": 9.99}, {"name": "Organic arugula", "total": 9.98, "2024": 0.0, "2025": 9.98, "2026": 0.0}, {"name": "Avocado oil mayonnaise", "total": 9.89, "2024": 0.0, "2025": 9.89, "2026": 0.0}, {"name": "Organic mango (frozen)", "total": 9.89, "2024": 0.0, "2025": 0.0, "2026": 9.89}, {"name": "Prosciutto", "total": 9.79, "2024": 9.79, "2025": 0.0, "2026": 0.0}, {"name": "Hellmann's mayonnaise", "total": 9.59, "2024": 9.59, "2025": 0.0, "2026": 0.0}, {"name": "Muffuletta olive salad mix", "total": 9.59, "2024": 9.59, "2025": 0.0, "2026": 0.0}, {"name": "Pantheon organic Kalamata olives", "total": 9.49, "2024": 0.0, "2025": 0.0, "2026": 9.49}, {"name": "Kirkland Signature Sartori Cabernet BellaVitano cheese", "total": 9.1, "2024": 0.0, "2025": 9.1, "2026": 0.0}, {"name": "NaturSource salad topper", "total": 8.99, "2024": 0.0, "2025": 8.99, "2026": 0.0}, {"name": "Cherry tomatoes on the vine, 1.5 lb", "total": 8.99, "2024": 0.0, "2025": 8.99, "2026": 0.0}, {"name": "Palmolive dish soap", "total": 8.99, "2024": 0.0, "2025": 8.99, "2026": 0.0}, {"name": "Mushrooms, 1.5 lb", "total": 8.88, "2024": 0.0, "2025": 4.99, "2026": 3.89}, {"name": "All-purpose flour, 25 lb", "total": 8.79, "2024": 8.79, "2025": 0.0, "2026": 0.0}, {"name": "Envy apples, 4 lb", "total": 8.49, "2024": 8.49, "2025": 0.0, "2026": 0.0}, {"name": "Butter chicken cooking sauce", "total": 7.99, "2024": 7.99, "2025": 0.0, "2026": 0.0}, {"name": "Kirkland Signature strawberry preserves", "total": 7.99, "2024": 7.99, "2025": 0.0, "2026": 0.0}, {"name": "Bagels", "total": 7.99, "2024": 7.99, "2025": 0.0, "2026": 0.0}, {"name": "Green kiwi, 3 lb", "total": 7.99, "2024": 7.99, "2025": 0.0, "2026": 0.0}, {"name": "Organic seasoned croutons", "total": 7.99, "2024": 7.99, "2025": 0.0, "2026": 0.0}, {"name": "Cranberry walnut bread", "total": 7.99, "2024": 0.0, "2025": 0.0, "2026": 7.99}, {"name": "Apricots/apriums, 3 lb", "total": 7.99, "2024": 0.0, "2025": 0.0, "2026": 7.99}, {"name": "Mandarin oranges, 5 lb", "total": 6.99, "2024": 6.99, "2025": 0.0, "2026": 0.0}, {"name": "General Mills Cheerios", "total": 6.99, "2024": 6.99, "2025": 0.0, "2026": 0.0}, {"name": "Mini cucumbers, 1.5 lb", "total": 6.99, "2024": 6.99, "2025": 0.0, "2026": 0.0}, {"name": "Lychee", "total": 6.99, "2024": 0.0, "2025": 6.99, "2026": 0.0}, {"name": "Greek yogurt", "total": 6.99, "2024": 0.0, "2025": 6.99, "2026": 0.0}, {"name": "Mateo's gourmet salsa", "total": 6.99, "2024": 0.0, "2025": 0.0, "2026": 6.99}, {"name": "Granulated sugar, 10 lb", "total": 6.99, "2024": 0.0, "2025": 0.0, "2026": 6.99}, {"name": "Oranges, 5 lb", "total": 6.59, "2024": 0.0, "2025": 0.0, "2026": 6.59}, {"name": "White nectarines", "total": 6.49, "2024": 0.0, "2025": 6.49, "2026": 0.0}, {"name": "Kirkland Signature Himalayan pink salt, fine grind", "total": 6.39, "2024": 0.0, "2025": 6.39, "2026": 0.0}, {"name": "Vidalia onions, 5 lb", "total": 5.99, "2024": 0.0, "2025": 5.99, "2026": 0.0}, {"name": "Organic broccoli, 2 lb", "total": 5.99, "2024": 0.0, "2025": 5.99, "2026": 0.0}, {"name": "Bartlett pears, 4 lb", "total": 5.99, "2024": 0.0, "2025": 5.99, "2026": 0.0}, {"name": "Brazilian papaya", "total": 5.99, "2024": 0.0, "2025": 5.99, "2026": 0.0}, {"name": "Brussels sprouts, 2 lb", "total": 5.99, "2024": 0.0, "2025": 5.99, "2026": 0.0}, {"name": "Artisan rolls", "total": 5.99, "2024": 0.0, "2025": 0.0, "2026": 5.99}, {"name": "Spring mix (greenhouse grown)", "total": 5.99, "2024": 0.0, "2025": 0.0, "2026": 5.99}, {"name": "Green onions", "total": 5.99, "2024": 0.0, "2025": 0.0, "2026": 5.99}, {"name": "Hami melon", "total": 5.99, "2024": 0.0, "2025": 0.0, "2026": 5.99}, {"name": "Kirkland Signature organic tofu", "total": 5.89, "2024": 0.0, "2025": 0.0, "2026": 5.89}, {"name": "Kosher salt", "total": 5.88, "2024": 0.0, "2025": 2.89, "2026": 2.99}, {"name": "Kirkland Signature cage-free eggs", "total": 5.29, "2024": 0.0, "2025": 5.29, "2026": 0.0}, {"name": "Roma tomatoes, 3 lb", "total": 4.89, "2024": 0.0, "2025": 0.0, "2026": 4.89}, {"name": "Raspberries, 12 oz", "total": 4.49, "2024": 0.0, "2025": 4.49, "2026": 0.0}, {"name": "Papaya", "total": 4.49, "2024": 0.0, "2025": 0.0, "2026": 4.49}, {"name": "Parsley flakes (spice)", "total": 3.99, "2024": 3.99, "2025": 0.0, "2026": 0.0}, {"name": "Mandarin oranges, 3 lb", "total": 3.49, "2024": 0.0, "2025": 3.49, "2026": 0.0}, {"name": "Bananas, 3 lb", "total": 1.49, "2024": 0.0, "2025": 1.49, "2026": 0.0}, {"name": "Adidas pants", "total": 0.0, "2024": 0.0, "2025": 39.98, "2026": -39.98}, {"name": "Instant savings – Blueberries, 18 oz", "total": -1.5, "2024": 0.0, "2025": -1.5, "2026": 0.0}, {"name": "Instant savings – Strawberries, 2 lb", "total": -1.5, "2024": 0.0, "2025": 0.0, "2026": -1.5}, {"name": "Instant savings – Organic cucumbers", "total": -1.5, "2024": 0.0, "2025": 0.0, "2026": -1.5}, {"name": "Instant savings – kiwi", "total": -2.0, "2024": -2.0, "2025": 0.0, "2026": 0.0}, {"name": "Instant savings – Madeleines (French butter cakes)", "total": -2.0, "2024": -2.0, "2025": 0.0, "2026": 0.0}, {"name": "Instant savings – gimMe roasted seaweed snacks (sea salt/teriyaki)", "total": -2.5, "2024": 0.0, "2025": 0.0, "2026": -2.5}, {"name": "Instant savings – Garden Lites spinach frittata (frozen)", "total": -3.0, "2024": -3.0, "2025": 0.0, "2026": 0.0}, {"name": "Instant savings – Tonkotsu ramen bowls", "total": -3.0, "2024": -3.0, "2025": 0.0, "2026": 0.0}, {"name": "Instant savings – L'Oreal Voluminous mascara, 3-pack", "total": -3.0, "2024": -3.0, "2025": 0.0, "2026": 0.0}, {"name": "Instant savings – Crew socks", "total": -3.0, "2024": -3.0, "2025": 0.0, "2026": 0.0}, {"name": "Instant savings – 32 Degrees shirt", "total": -3.0, "2024": -3.0, "2025": 0.0, "2026": 0.0}, {"name": "Instant savings – 45-quart storage container", "total": -3.0, "2024": 0.0, "2025": -3.0, "2026": 0.0}, {"name": "Instant savings – Golden kiwi, 3 lb", "total": -3.0, "2024": 0.0, "2025": 0.0, "2026": -3.0}, {"name": "Instant savings – Royal Asia coconut shrimp (frozen)", "total": -4.0, "2024": -4.0, "2025": 0.0, "2026": 0.0}, {"name": "Instant savings – One A Day Women's 50+ multivitamin, 300 ct", "total": -4.0, "2024": 0.0, "2025": -4.0, "2026": 0.0}, {"name": "Instant savings – Chateau Ste. Michelle Riesling", "total": -4.5, "2024": -4.5, "2025": 0.0, "2026": 0.0}, {"name": "Instant savings – Mixed bell peppers, 6-pack", "total": -4.5, "2024": 0.0, "2025": -3.0, "2026": -1.5}, {"name": "Instant savings – Canned chickpeas (garbanzo beans)", "total": -4.6, "2024": 0.0, "2025": -2.3, "2026": -2.3}, {"name": "Instant savings – pants (apparel)", "total": -5.0, "2024": -5.0, "2025": 0.0, "2026": 0.0}, {"name": "Instant savings – Deerskin gloves/mittens", "total": -5.0, "2024": -5.0, "2025": 0.0, "2026": 0.0}, {"name": "Instant savings – tee (apparel)", "total": -5.0, "2024": -5.0, "2025": 0.0, "2026": 0.0}, {"name": "Instant savings – Frito-Lay chips variety pack, 30 ct", "total": -5.0, "2024": 0.0, "2025": -5.0, "2026": 0.0}, {"name": "Instant savings – Tide liquid laundry detergent, 170 oz", "total": -5.0, "2024": 0.0, "2025": -5.0, "2026": 0.0}, {"name": "Instant savings – Skinless boneless sardines (no oil)", "total": -6.0, "2024": -3.0, "2025": -3.0, "2026": 0.0}, {"name": "Instant savings – 32 Degrees soft button-up shirt", "total": -6.0, "2024": -6.0, "2025": 0.0, "2026": 0.0}, {"name": "Instant savings – Charmin Ultra Soft toilet paper, 30 rolls", "total": -6.0, "2024": -6.0, "2025": 0.0, "2026": 0.0}, {"name": "Instant savings – Charmin Ultra Strong toilet paper, 30 rolls", "total": -6.0, "2024": 0.0, "2025": 0.0, "2026": -6.0}, {"name": "Instant savings – Staheekum men's snow boot", "total": -7.0, "2024": -7.0, "2025": 0.0, "2026": 0.0}, {"name": "Instant savings – Sardines (6-pack)", "total": -9.0, "2024": -9.0, "2025": 0.0, "2026": 0.0}, {"name": "Battery core refund", "total": -15.0, "2024": -15.0, "2025": 0.0, "2026": 0.0}, {"name": "Instant savings – salmon fillet", "total": -30.0, "2024": -12.0, "2025": -18.0, "2026": 0.0}, {"name": "Apple MacBook Pro 14-inch (MRW13LL/A, 18 GB)", "total": -2449.99, "2024": -2449.99, "2025": 0.0, "2026": 0.0}], "trips": [{"date": "2024-08-05", "datetime": "2024-08-05T11:23:00", "total": -2384.99, "subtotal": -2249.99, "tax": -135.0, "warehouse": "WHEATON", "nitems": 2}, {"date": "2024-08-05", "datetime": "2024-08-05T12:24:00", "total": 464.6, "subtotal": 463.11, "tax": 1.49, "warehouse": "WHEATON", "nitems": 26}, {"date": "2024-08-19", "datetime": "2024-08-19T11:26:00", "total": 335.28, "subtotal": 333.26, "tax": 2.02, "warehouse": "GAITHERSBURG", "nitems": 17}, {"date": "2024-08-26", "datetime": "2024-08-26T16:21:00", "total": 147.33, "subtotal": 138.99, "tax": 8.34, "warehouse": "GAITHERSBURG", "nitems": 2}, {"date": "2024-08-26", "datetime": "2024-08-26T16:50:00", "total": 104.15, "subtotal": 104.15, "tax": 0.0, "warehouse": "GAITHERSBURG", "nitems": 10}, {"date": "2024-08-27", "datetime": "2024-08-27T12:58:00", "total": -15.9, "subtotal": -15.0, "tax": -0.9, "warehouse": "GAITHERSBURG", "nitems": 1}, {"date": "2024-08-27", "datetime": "2024-08-27T13:05:00", "total": 17.99, "subtotal": 17.99, "tax": 0.0, "warehouse": "GAITHERSBURG", "nitems": 1}, {"date": "2024-09-06", "datetime": "2024-09-06T13:52:00", "total": 304.26, "subtotal": 298.01, "tax": 6.25, "warehouse": "PENTAGON CITY", "nitems": 16}, {"date": "2024-09-23", "datetime": "2024-09-23T12:14:00", "total": 298.75, "subtotal": 297.64, "tax": 1.11, "warehouse": "WHEATON", "nitems": 23}, {"date": "2024-10-21", "datetime": "2024-10-21T12:29:00", "total": 547.4, "subtotal": 538.51, "tax": 8.89, "warehouse": "PENTAGON CITY", "nitems": 36}, {"date": "2024-11-06", "datetime": "2024-11-06T14:02:00", "total": 475.57, "subtotal": 473.89, "tax": 1.68, "warehouse": "WHEATON", "nitems": 28}, {"date": "2024-11-13", "datetime": "2024-11-13T11:56:00", "total": 431.02, "subtotal": 429.13, "tax": 1.89, "warehouse": "WHEATON", "nitems": 34}, {"date": "2024-12-03", "datetime": "2024-12-03T13:21:00", "total": 298.18, "subtotal": 295.81, "tax": 2.37, "warehouse": "GAITHERSBURG", "nitems": 21}, {"date": "2024-12-07", "datetime": "2024-12-07T16:17:00", "total": 840.2, "subtotal": 816.49, "tax": 23.71, "warehouse": "WHEATON", "nitems": 64}, {"date": "2024-12-26", "datetime": "2024-12-26T12:35:00", "total": 411.98, "subtotal": 410.24, "tax": 1.74, "warehouse": "WHEATON", "nitems": 30}, {"date": "2025-01-21", "datetime": "2025-01-21T14:41:00", "total": 357.82, "subtotal": 356.35, "tax": 1.47, "warehouse": "WHEATON", "nitems": 23}, {"date": "2025-02-19", "datetime": "2025-02-19T11:35:00", "total": 383.43, "subtotal": 381.55, "tax": 1.88, "warehouse": "WHEATON", "nitems": 27}, {"date": "2025-03-12", "datetime": "2025-03-12T10:43:00", "total": 620.38, "subtotal": 615.57, "tax": 4.81, "warehouse": "WHEATON", "nitems": 43}, {"date": "2025-05-01", "datetime": "2025-05-01T10:24:00", "total": 388.63, "subtotal": 382.99, "tax": 5.64, "warehouse": "GAITHERSBURG", "nitems": 17}, {"date": "2025-05-30", "datetime": "2025-05-30T11:43:00", "total": 480.28, "subtotal": 479.98, "tax": 0.3, "warehouse": "WHEATON", "nitems": 29}, {"date": "2025-06-24", "datetime": "2025-06-24T10:42:00", "total": 515.47, "subtotal": 513.4, "tax": 2.07, "warehouse": "WHEATON", "nitems": 28}, {"date": "2025-07-06", "datetime": "2025-07-06T16:34:00", "total": 58.27, "subtotal": 54.97, "tax": 3.3, "warehouse": "WHEATON", "nitems": 5}, {"date": "2025-07-21", "datetime": "2025-07-21T12:18:00", "total": 523.08, "subtotal": 516.96, "tax": 6.12, "warehouse": "WHEATON", "nitems": 25}, {"date": "2025-08-14", "datetime": "2025-08-14T12:47:00", "total": 490.25, "subtotal": 487.65, "tax": 2.6, "warehouse": "WHEATON", "nitems": 26}, {"date": "2025-09-11", "datetime": "2025-09-11T11:15:00", "total": 775.5, "subtotal": 769.59, "tax": 5.91, "warehouse": "WHEATON", "nitems": 38}, {"date": "2025-10-14", "datetime": "2025-10-14T12:49:00", "total": 634.16, "subtotal": 632.42, "tax": 1.74, "warehouse": "GAITHERSBURG", "nitems": 36}, {"date": "2025-11-11", "datetime": "2025-11-11T16:59:00", "total": 587.58, "subtotal": 581.63, "tax": 5.95, "warehouse": "GAITHERSBURG", "nitems": 36}, {"date": "2025-12-10", "datetime": "2025-12-10T10:06:00", "total": 917.25, "subtotal": 912.89, "tax": 4.36, "warehouse": "GAITHERSBURG", "nitems": 37}, {"date": "2026-01-19", "datetime": "2026-01-19T09:30:00", "total": -42.38, "subtotal": -39.98, "tax": -2.4, "warehouse": "WHEATON", "nitems": 1}, {"date": "2026-01-19", "datetime": "2026-01-19T10:04:00", "total": 784.56, "subtotal": 779.66, "tax": 4.9, "warehouse": "WHEATON", "nitems": 37}, {"date": "2026-02-26", "datetime": "2026-02-26T09:47:00", "total": 703.94, "subtotal": 700.51, "tax": 3.43, "warehouse": "WHEATON", "nitems": 39}, {"date": "2026-05-06", "datetime": "2026-05-06T09:54:00", "total": 677.83, "subtotal": 673.79, "tax": 4.04, "warehouse": "GAITHERSBURG", "nitems": 34}, {"date": "2026-06-11", "datetime": "2026-06-11T09:42:00", "total": 751.89, "subtotal": 746.93, "tax": 4.96, "warehouse": "GAITHERSBURG", "nitems": 49}, {"date": "2026-07-27", "datetime": "2026-07-27T09:31:00", "total": 739.35, "subtotal": 735.3, "tax": 4.05, "warehouse": "GAITHERSBURG", "nitems": 38}]};
+const $ = s => document.querySelector(s);
+const money = n => (n<0?"-$":"$") + Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:0});
+const money2 = n => (n<0?"-$":"$") + Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const SVGNS="http://www.w3.org/2000/svg";
+const cs = getComputedStyle(document.documentElement);
+function C(v){return cs.getPropertyValue(v).trim();}
+const YEAR_SPAN = {"2024":"Aug–Dec","2025":"full year","2026":"Jan–Jul"};
+
+function el(tag,attrs,txt){const e=document.createElementNS(SVGNS,tag);
+  for(const k in attrs)e.setAttribute(k,attrs[k]); if(txt!=null)e.textContent=txt; return e;}
+
+// ---- tooltip ----
+const tip=$("#tip");
+function showTip(html,evt){tip.innerHTML=html;tip.style.opacity=1;moveTip(evt);}
+function moveTip(evt){let x=evt.clientX+14,y=evt.clientY+14;
+  const r=tip.getBoundingClientRect();
+  if(x+r.width>innerWidth-8)x=evt.clientX-r.width-14;
+  if(y+r.height>innerHeight-8)y=evt.clientY-r.height-14;
+  tip.style.left=x+"px";tip.style.top=y+"px";}
+function hideTip(){tip.style.opacity=0;}
+function bindTip(node,html){node.addEventListener("mouseenter",e=>showTip(html,e));
+  node.addEventListener("mousemove",moveTip);node.addEventListener("mouseleave",hideTip);}
+
+function niceMax(m){const p=Math.pow(10,Math.floor(Math.log10(m)));
+  const s=m/p; let n=s<=1?1:s<=2?2:s<=2.5?2.5:s<=5?5:10; return n*p;}
+function ticks(max,n=4){const out=[];for(let i=0;i<=n;i++)out.push(max*i/n);return out;}
+
+// ---- vertical bar chart (single series) ----
+function vbar(mount,{labels,values,sublabels,fmt=money,color="var(--s1)",unit=""}){
+  const W=760,H=360,mL=58,mR=16,mT=20,mB=sublabels?52:36;
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img"});
+  const iw=W-mL-mR, ih=H-mT-mB;
+  const max=niceMax(Math.max(...values,1));
+  const y=v=>mT+ih-(v/max)*ih;
+  ticks(max).forEach(t=>{const yy=y(t);
+    svg.appendChild(el("line",{class:"gridline",x1:mL,y1:yy,x2:W-mR,y2:yy}));
+    svg.appendChild(el("text",{class:"axis-t tab",x:mL-8,y:yy+3,"text-anchor":"end"},fmt(t)));});
+  svg.appendChild(el("line",{class:"baseline",x1:mL,y1:y(0),x2:W-mR,y2:y(0)}));
+  const n=values.length, bw=Math.min(90, iw/n*0.55), gap=iw/n;
+  values.forEach((v,i)=>{const cx=mL+gap*(i+0.5), bx=cx-bw/2, by=y(Math.max(v,0)), bh=Math.abs(y(v)-y(0));
+    const r=el("rect",{class:"bar",x:bx,y:by,width:bw,height:Math.max(bh,1),rx:4,fill:color});
+    bindTip(r,`<b>${labels[i]}</b><br>${fmt(v)}${unit}${sublabels?` <span class="muted">· ${sublabels[i]}</span>`:""}`);
+    svg.appendChild(r);
+    svg.appendChild(el("text",{class:"val-t",x:cx,y:by-7,"text-anchor":"middle"},fmt(v)));
+    svg.appendChild(el("text",{class:"axis-t",x:cx,y:H-mB+18,"text-anchor":"middle"},labels[i]));
+    if(sublabels)svg.appendChild(el("text",{class:"sub-t",x:cx,y:H-mB+32,"text-anchor":"middle"},sublabels[i]));
+  });
+  mount.appendChild(svg);
+}
+
+// ---- monthly bars (compact, single series) ----
+function monthBars(mount,{months,values,fmt=v=>v,color="var(--s1)",unit="",integerY=false}){
+  const W=760,H=300,mL=46,mR=12,mT=18,mB=54;
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`});
+  const iw=W-mL-mR, ih=H-mT-mB;
+  const rawMax=Math.max(...values,1);
+  const max=integerY?Math.ceil(rawMax):niceMax(rawMax);
+  const y=v=>mT+ih-(v/max)*ih;
+  const tks=integerY?Array.from({length:max+1},(_,i)=>i):ticks(max,4);
+  tks.forEach(t=>{const yy=y(t);
+    svg.appendChild(el("line",{class:"gridline",x1:mL,y1:yy,x2:W-mR,y2:yy}));
+    svg.appendChild(el("text",{class:"axis-t tab",x:mL-7,y:yy+3,"text-anchor":"end"},fmt(t)));});
+  svg.appendChild(el("line",{class:"baseline",x1:mL,y1:y(0),x2:W-mR,y2:y(0)}));
+  const n=months.length, gap=iw/n, bw=Math.min(gap*0.62,22);
+  months.forEach((m,i)=>{const cx=mL+gap*(i+0.5), v=values[i], bx=cx-bw/2, bh=(v/max)*ih;
+    const r=el("rect",{class:"bar",x:bx,y:y(v),width:bw,height:Math.max(bh,v>0?1:0),rx:3,fill:color});
+    const [yy,mm]=m.split("-"); const ml=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][+mm-1];
+    bindTip(r,`<b>${ml} ${yy}</b><br>${fmt(v)}${unit}`);
+    svg.appendChild(r);
+    // x labels: show every month tick as Jan.. and year under January
+    const short=mm==="01"||i===0?`${ml}`:ml[0];
+    svg.appendChild(el("text",{class:"axis-t",x:cx,y:H-mB+16,"text-anchor":"middle","font-size":9},ml));
+    if(mm==="01"||i===0||mm==="07"&&i===0){}
+  });
+  // year separators + labels
+  let seen={};
+  months.forEach((m,i)=>{const [yy,mm]=m.split("-");const cx=mL+gap*(i+0.5);
+    if(!seen[yy]){seen[yy]=true; if(i>0)svg.appendChild(el("line",{x1:mL+gap*i,y1:mT,x2:mL+gap*i,y2:y(0),stroke:"var(--grid)","stroke-dasharray":"3 3"}));
+      svg.appendChild(el("text",{class:"axis-t tab",x:cx,y:H-mB+34,"text-anchor":"start","font-weight":600},yy));}
+  });
+  mount.appendChild(svg);
+}
+
+// ---- stacked bars by year ----
+function stacked(mount,{years,cats,catData,colors}){
+  const W=760,H=420,mL=58,mR=16,mT=20,mB=52;
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`});
+  const iw=W-mL-mR, ih=H-mT-mB;
+  const totals=years.map(y=>cats.reduce((s,c)=>s+(catData[c][y]||0),0));
+  const max=niceMax(Math.max(...totals,1));
+  const y=v=>mT+ih-(v/max)*ih;
+  ticks(max).forEach(t=>{const yy=y(t);
+    svg.appendChild(el("line",{class:"gridline",x1:mL,y1:yy,x2:W-mR,y2:yy}));
+    svg.appendChild(el("text",{class:"axis-t tab",x:mL-8,y:yy+3,"text-anchor":"end"},money(t)));});
+  svg.appendChild(el("line",{class:"baseline",x1:mL,y1:y(0),x2:W-mR,y2:y(0)}));
+  const gap=iw/years.length, bw=Math.min(120,gap*0.5);
+  years.forEach((yr,i)=>{const cx=mL+gap*(i+0.5), bx=cx-bw/2; let acc=0;
+    cats.forEach((c,ci)=>{const v=catData[c][yr]||0; if(v<=0)return;
+      const yTop=y(acc+v), h=(v/max)*ih;
+      const r=el("rect",{class:"bar",x:bx,y:yTop,width:bw,height:Math.max(h-2,1),rx:2,fill:colors[ci]});
+      bindTip(r,`<b>${c}</b> · ${yr}<br>${money2(v)} <span class="muted">(${(v/totals[i]*100).toFixed(0)}% of year)</span>`);
+      svg.appendChild(r); acc+=v;});
+    svg.appendChild(el("text",{class:"val-t",x:cx,y:y(acc)-7,"text-anchor":"middle"},money(acc)));
+    svg.appendChild(el("text",{class:"axis-t",x:cx,y:H-mB+18,"text-anchor":"middle","font-weight":600},yr));
+    svg.appendChild(el("text",{class:"sub-t",x:cx,y:H-mB+32,"text-anchor":"middle"},YEAR_SPAN[yr]||""));
+  });
+  mount.appendChild(svg);
+}
+
+// ---- horizontal bars ----
+function hbar(mount,{labels,values,fmt=money2,color="var(--s1)",maxChars=33}){
+  const rowH=26, mT=8, mB=8, mR=66, labelW=246;
+  const W=760, H=mT+mB+labels.length*rowH;
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`});
+  const iw=W-labelW-mR;
+  const max=Math.max(...values,1);
+  const clip=s=>s.length>maxChars?s.slice(0,maxChars-1).trimEnd()+"…":s;
+  values.forEach((v,i)=>{const cy=mT+rowH*i, by=cy+4, bh=rowH-9, bwv=Math.max((v/max)*iw,2);
+    const t=el("text",{class:"axis-t",x:labelW-8,y:cy+rowH/2+3,"text-anchor":"end",fill:"var(--ink-2)","font-size":11.5},clip(labels[i]));
+    if(labels[i].length>maxChars)t.appendChild(el("title",{},labels[i]));
+    svg.appendChild(t);
+    const r=el("rect",{class:"bar",x:labelW,y:by,width:bwv,height:bh,rx:4,fill:color});
+    bindTip(r,`<b>${labels[i]}</b><br>${fmt(v)}`);
+    svg.appendChild(r);
+    svg.appendChild(el("text",{class:"val-t",x:labelW+bwv+7,y:cy+rowH/2+3,"font-size":11},fmt(v)));
+  });
+  mount.appendChild(svg);
+}
+
+// ================= RENDER =================
+function render(){
+  document.querySelectorAll("[id^=chart-]").forEach(n=>n.innerHTML="");
+  const m=DATA.meta;
+  $("#subtitle").textContent=`${m.first} → ${m.last} · ${m.n_trips} warehouse trips · ${m.n_items} line items · ${m.n_unique_items} unique products`;
+  $("#partialNote").innerHTML=`<b>Note on years.</b> 2024 covers Aug–Dec and 2026 covers Jan–Jul, so only <b>2025</b> is a full year — compare the monthly charts for a fair picture. “Net” spending subtracts returns; 2024’s net is low mainly because of a large electronics return (${money2(DATA.year_returns["2024"])}).`;
+
+  // KPIs
+  const kpis=[
+    ["Total net spent",money2(m.total_net)],
+    ["Warehouse trips",m.n_trips],
+    ["Avg between trips",m.avg_gap+" days"],
+    ["Avg per trip",money2(m.total_net/m.n_trips)],
+    ["Line items bought",m.n_items.toLocaleString("en-US")],
+    ["Unique products",m.n_unique_items],
+  ];
+  $("#kpis").innerHTML=kpis.map(k=>`<div class="kpi"><div class="v">${k[1]}</div><div class="l">${k[0]}</div></div>`).join("");
+
+  // year totals
+  vbar($("#chart-year"),{
+    labels:DATA.years, values:DATA.years.map(y=>DATA.year_net[y]),
+    sublabels:DATA.years.map(y=>`${YEAR_SPAN[y]} · ${DATA.year_trips[y]} trips`), fmt:money});
+
+  // trips per month
+  monthBars($("#chart-tripsm"),{months:DATA.months,values:DATA.months.map(x=>DATA.month_trips[x]),
+    fmt:v=>Math.round(v), unit:" trips", color:"var(--s2)", integerY:true});
+  // spend per month
+  monthBars($("#chart-spendm"),{months:DATA.months,values:DATA.months.map(x=>DATA.month_spend[x]),
+    fmt:money, color:"var(--s1)"});
+
+  // category stacked
+  const catColors=["var(--s1)","var(--s2)","var(--s3)","var(--s4)","var(--s5)","var(--s6)","var(--s7)","var(--s8)"];
+  stacked($("#chart-cat"),{years:DATA.years,cats:DATA.cat_order,catData:DATA.cat_year,colors:catColors});
+  $("#legend-cat").innerHTML=DATA.cat_order.map((c,i)=>
+    `<span><i style="background:${catColors[i]}"></i>${c} <span style="color:var(--muted)">${money(DATA.cat_total[c])}</span></span>`).join("");
+
+  // top products
+  const top=DATA.items.filter(it=>it.total>0).slice(0,20);
+  hbar($("#chart-top"),{labels:top.map(t=>t.name),values:top.map(t=>t.total)});
+
+  // warehouses
+  hbar($("#chart-wh"),{labels:DATA.warehouses.map(w=>`${w} (${DATA.wh_trips[w]} trips)`),
+    values:DATA.warehouses.map(w=>DATA.wh_spend[w]),color:"var(--s7)"});
+
+  buildTable();
+  $("#footer").innerHTML=`Source: costco.com order & purchase receipts (in-warehouse), pulled ${m.last}. `+
+    `Totals reconcile to register receipts (subtotal + tax = total on all ${m.n_trips} trips). `+
+    `Category groups are derived from receipt department codes. Generated for personal use.`;
+}
+
+// ---- table ----
+let sortK="total", sortDir=-1;
+function buildTable(){
+  const q=$("#search").value.trim().toLowerCase();
+  let rows=DATA.items.filter(it=>!q||it.name.toLowerCase().includes(q));
+  rows.sort((a,b)=>{let av=a[sortK],bv=b[sortK];
+    if(sortK==="name")return sortDir*av.localeCompare(bv);
+    return sortDir*((av||0)-(bv||0));});
+  const cell=v=>v>0?`<td class="num">${money2(v)}</td>`:`<td class="num zero">–</td>`;
+  $("#tbody").innerHTML=rows.map(it=>
+    `<tr><td class="name">${it.name}</td>${cell(it["2024"])}${cell(it["2025"])}${cell(it["2026"])}`+
+    `<td class="num"><b>${money2(it.total)}</b></td></tr>`).join("");
+  $("#tblcount").textContent=`${rows.length} of ${DATA.items.length} products`;
+  document.querySelectorAll("th .arw").forEach(a=>a.textContent="");
+  const th=document.querySelector(`th[data-k="${sortK}"] .arw`); if(th)th.textContent=sortDir<0?"▼":"▲";
+}
+document.querySelectorAll("th").forEach(th=>th.addEventListener("click",()=>{
+  const k=th.dataset.k; if(k===sortK)sortDir*=-1; else{sortK=k;sortDir=k==="name"?1:-1;} buildTable();}));
+$("#search").addEventListener("input",buildTable);
+$("#tblcap").textContent=`All ${DATA.meta.n_unique_items} distinct products, net spend per calendar year. Click a column to sort, or filter above.`;
+
+// ---- theme toggle ----
+$("#themeBtn").addEventListener("click",()=>{
+  const cur=document.documentElement.getAttribute("data-theme");
+  const dark=cur?cur==="dark":matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.setAttribute("data-theme",dark?"light":"dark");
+  render();
+});
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",()=>{
+  if(!document.documentElement.getAttribute("data-theme"))render();});
+
+render();
+</script>
+</body>
+</html>
